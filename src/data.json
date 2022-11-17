@@ -1,6 +1,16 @@
 {
   "userid": "",
   "password": "",
-  "date": "",
-  "mobile": ""
+  "date": "17/11/2022",
+  "mobile": "",
+  "from": "",
+  "to": "",
+  "travelers": [
+    {
+      "name": "",
+      "age": "0",
+      "gender": "M",
+      "infant": false
+    }
+  ]
 }
