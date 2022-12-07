@@ -55,7 +55,7 @@ try {
     (selector) => {
       return document.querySelector(selector) !== null;
     },
-    {},
+    { timeout: 100000 },
     '[aria-label="Click here to Login in application"]'
   );
 
@@ -110,12 +110,12 @@ try {
   const e = await page.$$('input[role="searchbox"]');
   await e[0].click({ clickCount: 3 });
   await e[0].type(data.from);
-  await page.waitForTimeout(500);
+  await new Promise(r => setTimeout(r, 500));
   await page.keyboard.press('Tab');
 
   await e[1].click({ clickCount: 3 });
   await e[1].type(data.to);
-  await page.waitForTimeout(500);
+  await new Promise(r => setTimeout(r, 500));
   await page.keyboard.press('Tab');
 
   // Set date -- Fix this
@@ -127,7 +127,7 @@ try {
   await page.keyboard.press('Tab');
 
   await page.keyboard.press('Enter');
-  await page.waitForTimeout(1000);
+  await new Promise(r => setTimeout(r, 1000));
 
   await page.keyboard.press('Tab');
   await page.keyboard.press('Tab');
@@ -147,14 +147,14 @@ try {
     answer !== 'n'
   );
 
-  await page.waitForTimeout(2000);
+  await new Promise(r => setTimeout(r, 2000));
 
   // Fill other information
   await page.waitForSelector('#mobileNumber', { timeout: 100000 });
   await page.click('#mobileNumber', { clickCount: 3 });
   await page.type('#mobileNumber', data.mobile);
 
-  await page.waitForTimeout(1000);
+  await new Promise(r => setTimeout(r, 1000));
 
   // Fill travelers details
 
@@ -179,27 +179,61 @@ try {
       button.click();
     }
 
-    await page.waitForTimeout(500);
+    await new Promise(r => setTimeout(r, 500));
 
     await page.type('[name="infant-name"]', infantCandidate?.name); // TODO
     await page.select('[formcontrolname="age"]', infantCandidate?.age);
     await page.select('[formcontrolname="gender"]', infantCandidate?.gender); // Gender can be 'M' or 'F'
 
-    await page.waitForTimeout(500);
+    await new Promise(r => setTimeout(r, 500));
   }
 
-  let [button] = await page.$x("//span[contains(., '+ Add Passenger')]");
+  const adultPassengers = data.travelers.filter(traveller => !traveller.infant && traveller.name.length > 0);
 
-  if (button) {
-    button.click();
+  for (let index = 0; index < adultPassengers.length; index++) {
+
+    const inputElements = await page.$$('[formcontrolname="passengerName"] input');
+    const inputAgeElements = await page.$$('[formcontrolname="passengerAge"]');
+    const inputGenderElements = await page.$$('[formcontrolname="passengerGender"]');
+
+    inputElements[index].click({ clickCount: 3 });
+    await new Promise(r => setTimeout(r, 500));
+    inputElements[index].type(adultPassengers[index].name);
+    await new Promise(r => setTimeout(r, 500));
+    inputAgeElements[index].type(adultPassengers[index].age);
+    await new Promise(r => setTimeout(r, 500));
+    inputGenderElements[index].select(adultPassengers[index].gender);
+
+    if (index < adultPassengers.length - 1) {
+      const [button] = await page.$x("//span[contains(., '+ Add Passenger')]");
+
+      if (button) {
+        button.click();
+
+        await new Promise(r => setTimeout(r, 500));
+      }
+    }
+
   }
 
-  await page.waitForSelector('input[id="cardNumber"]', { timeout: 100000 });
+  answer = '';
 
-  await page.type('input#cardNumber', '1234567890123456'); // TODO
-  await page.type('input#cardExpiry', '0124'); // TODO
-  await page.type('input#cardCvv', '011'); // TODO
-  await page.type('input#cardOwnerName', 'Test'); // TODO
+  do {
+    answer = await rl.question('Continue for Payment (Y/N)?');
+  } while (
+    answer !== 'Y' &&
+    answer !== 'N' &&
+    answer !== 'y' &&
+    answer !== 'n'
+  );
+
+  await new Promise(r => setTimeout(r, 1000));
+
+  await page.type('input#cardnumber', '1234567890123456'); // TODO
+  await page.select('select#expmonth', '1'); // TODO
+  await page.select('select#expyear', '24'); // TODO
+  await page.type('input#cvm_masked', '011'); // TODO
+  await page.type('input#bname', 'Gaurav'); // TODO
 
 } catch (error) {
 
