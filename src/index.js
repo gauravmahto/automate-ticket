@@ -5,6 +5,8 @@ import { launch } from 'puppeteer';
 
 import data from './data.json' assert { type: 'json' };
 
+const rl = readline.createInterface({ input, output });
+
 try {
   const browser = await launch({
     headless: false,
@@ -133,19 +135,7 @@ try {
   await page.keyboard.press('Tab');
   await page.keyboard.press('Space');
 
-  // Expect user to fill the data and press Y to continue the script execution
-  const rl = readline.createInterface({ input, output });
-
-  let answer = '';
-
-  do {
-    answer = await rl.question('Continue (Y/N)?');
-  } while (
-    answer !== 'Y' &&
-    answer !== 'N' &&
-    answer !== 'y' &&
-    answer !== 'n'
-  );
+  await prompt('Continue (Y/N)?', rl);
 
   await new Promise(r => setTimeout(r, 2000));
 
@@ -216,10 +206,27 @@ try {
 
   }
 
-  answer = '';
+  await prompt('Continue for Payment (Y/N)?', rl);
+
+  let retryAttempt = 0;
+
+  await tryWithRetry(paymentEntries, 4, () => ++retryAttempt, page);
+
+} catch (error) {
+
+  console.log(error);
+
+}
+
+async function prompt(message, rl) {
+
+  let answer = '';
 
   do {
-    answer = await rl.question('Continue for Payment (Y/N)?');
+
+    // Expect user to fill the data and press Y to continue the script execution
+    answer = await rl.question(message);
+
   } while (
     answer !== 'Y' &&
     answer !== 'N' &&
@@ -227,16 +234,49 @@ try {
     answer !== 'n'
   );
 
-  await new Promise(r => setTimeout(r, 1000));
+  return answer.toLowerCase() === 'y';
 
-  await page.type('input#cardnumber', '1234567890123456'); // TODO
-  await page.select('select#expmonth', '1'); // TODO
-  await page.select('select#expyear', '24'); // TODO
-  await page.type('input#cvm_masked', '011'); // TODO
-  await page.type('input#bname', 'Gaurav'); // TODO
+}
 
-} catch (error) {
+async function tryWithRetry(retryFn, numberOfRetries = Number.POSITIVE_INFINITY, retryCountFn, ...args) {
 
-  console.log(error);
+  let attemptSuccessful = true;
+  let continueAfterPrompt = false;
+
+  do {
+
+    attemptSuccessful = await retryFn(...args);
+
+    if (!attemptSuccessful) {
+
+      continueAfterPrompt = await prompt('Retry Payment (Y/N)?', rl);
+
+    }
+
+  } while (continueAfterPrompt && retryCountFn() < numberOfRetries);
+
+}
+
+async function paymentEntries(page) {
+
+  let result = true;
+
+  try {
+
+    await new Promise(r => setTimeout(r, 1000));
+
+    await page.type('input#cardnumber', ''); // TODO
+    await page.select('select#expmonth', ''); // TODO
+    await page.select('select#expyear', ''); // TODO
+    await page.type('input#cvm_masked', ''); // TODO
+    await page.type('input#bname', ''); // TODO
+
+  } catch {
+
+    result = false;
+
+  }
+
+  return result;
 
 }
