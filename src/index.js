@@ -11,7 +11,8 @@ try {
   const browser = await launch({
     headless: false,
     executablePath:
-      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      // '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      'C:\\Program Files\\Google\\Chrome\\Application\\Chrome.exe',
     ignoreDefaultArgs: ['--enable-automation'],
     args: ['--start-fullscreen'],
     defaultViewport: null
@@ -245,7 +246,8 @@ async function tryWithRetry(retryFn, numberOfRetries = Number.POSITIVE_INFINITY,
 
   do {
 
-    attemptSuccessful = await retryFn(...args);
+    continueAfterPrompt = false;
+    attemptSuccessful = await paymentEntries(...args);
 
     if (!attemptSuccessful) {
 
