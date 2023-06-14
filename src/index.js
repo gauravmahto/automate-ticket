@@ -21,6 +21,13 @@ try {
   context.overridePermissions('https://www.irctc.co.in', ['notifications']);
   const page = await browser.newPage();
 
+  // Get the addEventListener function reference since this will be overwritten by irctc code
+  await page.evaluateOnNewDocument(() => {
+
+    window.addEL = document.addEventListener;
+
+  });
+
   // Avoid website webdriver sniffing
   await page.evaluateOnNewDocument(() => {
     const handleDocumentLoaded = () => {
@@ -43,16 +50,35 @@ try {
   // await page.waitForSelector('.btn.btn-primary');
   // await page.click('.btn.btn-primary');
 
-  // This dialog has been removed .. no need to wait.
-  // await page.waitForFunction(
-  //   (selector) => {
-  //     return document.querySelector(selector) === null;
-  //   },
-  //   {},
-  //   '.ui-dialog-mask'
-  // );
-
   // Log in
+
+  const controller = new AbortController();
+
+  await page.exposeFunction('abort', () => {
+
+    console.log('Aborting');
+    controller.abort();
+
+  });
+
+  await page.evaluate(() => {
+
+    window.addEL('click', async () => {
+
+      await window.abort();
+
+    });
+
+  });
+
+  // This dialog has been removed..no need to wait.;
+  await page.waitForFunction(
+    (selector) => {
+      return document.querySelector(selector) === null;
+    },
+    { signal: controller.signal },
+    '.ui-dialog-mask'
+  );
 
   // Click login
   await page.waitForFunction(
