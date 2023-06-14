@@ -104,3 +104,9 @@ dist
 .tern-port
 
 *copy.*
+
+# MAC specific
+.DS_STORE
+
+# Data file
+data.json

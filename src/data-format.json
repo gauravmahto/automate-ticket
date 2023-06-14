@@ -1,0 +1,22 @@
+{
+  "userid": "",
+  "password": "",
+  "date": "dd/mm/yyyy",
+  "mobile": "",
+  "from": "station-code",
+  "to": "station-code",
+  "creditCardNumber": "",
+  "nameOnCard": "",
+  "cvv": "",
+  "expiryYear": "",
+  "expiryMonth": "",
+  "travelers": [
+    {
+      "name": "",
+      "age": "",
+      "gender": "F/M",
+      "infant": false,
+      "foodChoice": "Veg|Non Veg|No Food"
+    }
+  ]
+}

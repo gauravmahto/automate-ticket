@@ -11,8 +11,8 @@ try {
   const browser = await launch({
     headless: false,
     executablePath:
-      // '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
-      'C:\\Program Files\\Google\\Chrome\\Application\\Chrome.exe',
+      '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
+      // 'C:\\Program Files\\Google\\Chrome\\Application\\Chrome.exe',
     ignoreDefaultArgs: ['--enable-automation'],
     args: ['--start-fullscreen'],
     defaultViewport: null
@@ -43,13 +43,13 @@ try {
   // await page.waitForSelector('.btn.btn-primary');
   // await page.click('.btn.btn-primary');
 
-  await page.waitForFunction(
-    (selector) => {
-      return document.querySelector(selector) === null;
-    },
-    {},
-    '.ui-dialog-mask'
-  );
+  // await page.waitForFunction(
+  //   (selector) => {
+  //     return document.querySelector(selector) === null;
+  //   },
+  //   {},
+  //   '.ui-dialog-mask'
+  // );
 
   // Log in
 
@@ -136,6 +136,7 @@ try {
   await page.keyboard.press('Tab');
   await page.keyboard.press('Space');
 
+  // Await for user input to continue
   await prompt('Continue (Y/N)?', rl);
 
   await new Promise(r => setTimeout(r, 2000));
@@ -165,6 +166,9 @@ try {
     const [button] = await page.$x(
       "//span[contains(., '+ Add Infant Without Berth')]"
     );
+
+    // TODO
+    // Add support for Infant with Birth
 
     if (button) {
       button.click();
@@ -207,6 +211,7 @@ try {
 
   }
 
+  // Await user input to continue for payment
   await prompt('Continue for Payment (Y/N)?', rl);
 
   let retryAttempt = 0;
@@ -251,6 +256,7 @@ async function tryWithRetry(retryFn, numberOfRetries = Number.POSITIVE_INFINITY,
 
     if (!attemptSuccessful) {
 
+      // Await for user input to retry
       continueAfterPrompt = await prompt('Retry Payment (Y/N)?', rl);
 
     }
@@ -267,11 +273,15 @@ async function paymentEntries(page) {
 
     await new Promise(r => setTimeout(r, 1000));
 
+    // For ICICI gateway
     await page.type('input#cardnumber', ''); // TODO
-    await page.select('select#expmonth', ''); // TODO
-    await page.select('select#expyear', ''); // TODO
-    await page.type('input#cvm_masked', ''); // TODO
-    await page.type('input#bname', ''); // TODO
+    await page.select('select#expmonth', '2'); // Index of options
+    await page.select('select#expyear', '3'); // Index of options
+    await page.type('input#cvm_masked', '302'); // TODO
+    await page.type('input#bname', 'Gaura v'); // TODO
+    
+    // TODO
+    // Add support for other payment gateways
 
   } catch {
 
