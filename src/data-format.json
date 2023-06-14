@@ -16,7 +16,7 @@
       "age": "",
       "gender": "F/M",
       "infant": false,
-      "foodChoice": "Veg|Non Veg|No Food"
+      "foodChoice": "V-Veg|N-Non Veg|D-No Food"
     }
   ]
 }
