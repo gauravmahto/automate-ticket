@@ -25,6 +25,7 @@ try {
   await page.evaluateOnNewDocument(() => {
 
     window.addEL = document.addEventListener;
+    window.removeEL = document.removeEventListener;
 
   });
 
@@ -63,48 +64,55 @@ try {
 
   await page.evaluate(() => {
 
-    window.addEL('click', async () => {
+    function callAbort() {
 
-      await window.abort();
+      window.abort();
 
-    });
+      window.removeEL('click', callAbort);
+
+    }
+
+    window.addEL('click', callAbort);
 
   });
 
-  // This dialog has been removed..no need to wait.;
-  await page.waitForFunction(
-    (selector) => {
-      return document.querySelector(selector) === null;
-    },
-    { signal: controller.signal },
-    '.ui-dialog-mask'
-  );
+  try {
 
-  // Click login
-  await page.waitForFunction(
-    (selector) => {
-      return document.querySelector(selector) !== null;
-    },
-    { timeout: 100000 },
-    '[aria-label="Click here to Login in application"]'
-  );
+    // This dialog has been removed..no need to wait.;
+    await page.waitForFunction(
+      (selector) => {
+        return document.querySelector(selector) === null;
+      },
+      { signal: controller.signal },
+      '.ui-dialog-mask'
+    );
 
-  await page.click(`[aria-label="Click here to Login in application"]`);
+  } catch {
 
-  await page.waitForFunction(
-    (selector) => {
-      return document.querySelector(selector) !== null;
-    },
-    {},
-    'input.form-control[placeholder="User Name"]'
-  );
-  await page.waitForFunction(
-    (selector) => {
-      return document.querySelector(selector) !== null;
-    },
-    {},
-    'input.form-control[placeholder="Password"]'
-  );
+    console.log('Error - Waiting for dialog to close');
+
+  }
+
+  try {
+
+    await waitForLoginPage(page, 15000);
+
+  } catch {
+
+    // Click login
+    await page.waitForFunction(
+      (selector) => {
+        return document.querySelector(selector) !== null;
+      },
+      { timeout: 100000 },
+      '[aria-label="Click here to Login in application"]'
+    );
+
+    await page.click(`[aria-label="Click here to Login in application"]`);
+
+    await waitForLoginPage(page);
+
+  }
 
   // Fill log-in info
   await page.type('input.form-control[placeholder="User Name"]', data.userid);
@@ -266,6 +274,27 @@ try {
 } catch (error) {
 
   console.log(error);
+  console.log('No action to work upon!');
+
+}
+
+async function waitForLoginPage(page, timeout) {
+
+  await page.waitForFunction(
+    (selector) => {
+      return document.querySelector(selector) !== null;
+    },
+    { timeout },
+    'input.form-control[placeholder="User Name"]'
+  );
+
+  await page.waitForFunction(
+    (selector) => {
+      return document.querySelector(selector) !== null;
+    },
+    { timeout },
+    'input.form-control[placeholder="Password"]'
+  );
 
 }
 
