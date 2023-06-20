@@ -5,10 +5,18 @@ import { launch } from 'puppeteer';
 
 import data from './data.json' assert { type: 'json' };
 
+const reason = Symbol('reason');
+const errorManualMessage = 'Manual abort';
+const errorManualCause = { [reason]: errorManualMessage };
+
 const rl = readline.createInterface({ input, output });
 
+let browser;
+let page;
+
 try {
-  const browser = await launch({
+
+  browser = await launch({
     headless: false,
     executablePath:
       '/Applications/Google Chrome.app/Contents/MacOS/Google Chrome',
@@ -17,9 +25,10 @@ try {
     args: ['--start-fullscreen'],
     defaultViewport: null
   });
+
   const context = browser.defaultBrowserContext();
   context.overridePermissions('https://www.irctc.co.in', ['notifications']);
-  const page = await browser.newPage();
+  page = await browser.newPage();
 
   // Get the addEventListener function reference since this will be overwritten by irctc code
   await page.evaluateOnNewDocument(() => {
@@ -31,14 +40,21 @@ try {
 
   // Avoid website webdriver sniffing
   await page.evaluateOnNewDocument(() => {
+
     const handleDocumentLoaded = () => {
       Object.defineProperty(navigator, 'webdriver', { get: () => undefined });
     };
+
     if (document.readyState === 'loading') {
+
       document.addEventListener('DOMContentLoaded', handleDocumentLoaded);
+
     } else {
+
       handleDocumentLoaded();
+
     }
+
   });
 
   // page.setViewport({ width: 2040, height: 1080, deviceScaleFactor: 1 });
@@ -89,9 +105,12 @@ try {
 
   } catch {
 
-    console.log('Error - Waiting for dialog to close');
+    console.error('Error - Waiting for dialog to close');
 
   }
+
+  const infoLogger = logInfoWithIndex(1);
+  infoLogger('Ignoring exception');
 
   try {
 
@@ -99,18 +118,37 @@ try {
 
   } catch {
 
-    // Click login
-    await page.waitForFunction(
-      (selector) => {
-        return document.querySelector(selector) !== null;
-      },
-      { timeout: 100000 },
-      '[aria-label="Click here to Login in application"]'
-    );
+    try {
 
-    await page.click(`[aria-label="Click here to Login in application"]`);
+      // Click login
+      await page.waitForFunction(
+        (selector) => {
+          return document.querySelector(selector) !== null;
+        },
+        { timeout: 15000 },
+        '[aria-label="Click here to Login in application"]'
+      );
 
-    await waitForLoginPage(page);
+      await page.click(`[aria-label="Click here to Login in application"]`);
+
+      await waitForLoginPage(page);
+
+    } catch {
+
+      console.error('Error - Waiting for login page');
+
+      infoLogger('Ignoring exception');
+
+      // Await for user input for login page confirmation to continue
+      const result = await prompt('Is login page open (Y/N)?', rl);
+
+      if (!result) {
+
+        throw new Error('Is login page open (Y/N) - Aborted', { cause: errorManualCause });
+
+      }
+
+    }
 
   }
 
@@ -128,13 +166,30 @@ try {
 
   // Logged in
 
-  await page.waitForFunction(
-    (selector) => {
-      return document.querySelector(selector) !== null;
-    },
-    { timeout: 100000 },
-    '[aria-label="Click here Logout from application"]'
-  );
+  try {
+
+    await page.waitForFunction(
+      (selector) => {
+        return document.querySelector(selector) !== null;
+      },
+      { timeout: 50000 },
+      '[aria-label="Click here Logout from application"]'
+    );
+
+  } catch {
+
+    infoLogger('Ignoring exception');
+
+    // Await for user input for login page confirmation to continue
+    const result = await prompt('Are you logged in (Y/N)?', rl);
+
+    if (!result) {
+
+      throw new Error('Are you logged in (Y/N) - Aborted', { cause: errorManualCause });
+
+    }
+
+  }
 
   await page.waitForFunction(
     (selector) => {
@@ -172,7 +227,13 @@ try {
   await page.keyboard.press('Space');
 
   // Await for user input to continue
-  await prompt('Continue (Y/N)?', rl);
+  let result = await prompt('Continue (Y/N)?', rl);
+
+  if (!result) {
+
+    throw new Error('Continue (Y/N) - Aborted', { cause: errorManualCause });
+
+  }
 
   await new Promise(r => setTimeout(r, 2000));
 
@@ -265,7 +326,13 @@ try {
   }
 
   // Await user input to continue for payment
-  await prompt('Continue for Payment (Y/N)?', rl);
+  result = await prompt('Continue for Payment (Y/N)?', rl);
+
+  if (!result) {
+
+    throw new Error('Continue for Payment (Y/N) - Aborted', { cause: errorManualCause });
+
+  }
 
   let retryAttempt = 0;
 
@@ -273,8 +340,20 @@ try {
 
 } catch (error) {
 
-  console.log(error);
+  console.error(error);
+
   console.log('No action to work upon!');
+
+  const answer = await prompt('Do you want to end the process (Y/N)?', rl);
+
+  if (answer) {
+
+    page?.close();
+    browser?.close();
+    process.exit(0);
+
+  }
+
 
 }
 
@@ -364,5 +443,15 @@ async function paymentEntries(page) {
   }
 
   return result;
+
+}
+
+function logInfoWithIndex(startIndex = 1) {
+
+  return (message) => {
+
+    console.info(`${message} ${startIndex++}`);
+
+  };
 
 }
